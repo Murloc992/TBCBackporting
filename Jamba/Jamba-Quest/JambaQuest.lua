@@ -211,7 +211,7 @@ function AJM:OnEnable()
     AJM:SecureHook( "CompleteQuest" )
     AJM:SecureHook( "DeclineQuest" )
 	AJM:SecureHook( "GetQuestReward" )
-	AJM:SecureHook( "ToggleFrame" )
+	AJM:SecureHook( "ToggleQuestLog", "ToggleFrame" )
 	AJM:SecureHook( QuestLogFrame, "Hide", "QuestLogFrameHide" )
 	AJM:SecureHook( "SelectQuestLogEntry" )
 	AJM:SecureHook( "AddQuestWatch" )
@@ -2008,8 +2008,8 @@ function AJM:AddQuestWatch( questIndex )
 end
 
 function AJM:RemoveQuestWatch( questIndex )
-	local questLogTitleText, level, questTag,  suggestedGroup, isHeader, isCollapsed,  isComplete, isDaily, questID = GetQuestLogTitle( questIndex )
-	AJM:RemoveQuestFromWatchList( questID )
+	local questLogTitleText, level, questTag,  suggestedGroup, isHeader, isCollapsed,  isComplete, isDaily = GetQuestLogTitle( questIndex )
+	AJM:RemoveQuestFromWatchList( questLogTitleText )
 end
 
 function AJM:SetAbandonQuest()
@@ -2066,43 +2066,43 @@ end
 -- QUEST WATCH CACHE
 -------------------------------------------------------------------------------------------------------------
 
-function AJM:IsQuestObjectiveInCache( questID, objectiveIndex )
-	local key = questID..objectiveIndex
+function AJM:IsQuestObjectiveInCache( questName, objectiveIndex )
+	local key = questName..objectiveIndex
 	if AJM.questWatchCache[key] == nil then
 		return false
 	end
 	return true
 end
 
-function AJM:AddQuestObjectiveToCache( questID, objectiveIndex, amountCompleted, objectiveFinished )
-	local key = questID..objectiveIndex
+function AJM:AddQuestObjectiveToCache( questName, objectiveIndex, amountCompleted, objectiveFinished )
+	local key = questName..objectiveIndex
 	AJM.questWatchCache[key] = {}
-	AJM.questWatchCache[key].questID = questID
+	AJM.questWatchCache[key].questName = questName
 	AJM.questWatchCache[key].amountCompleted = amountCompleted
 	AJM.questWatchCache[key].objectiveFinished = objectiveFinished
 end
 
-function AJM:GetQuestCachedValues( questID, objectiveIndex )
-	local key = questID..objectiveIndex
+function AJM:GetQuestCachedValues( questName, objectiveIndex )
+	local key = questName..objectiveIndex
 	return AJM.questWatchCache[key].amountCompleted, AJM.questWatchCache[key].objectiveFinished
 end
 
-function AJM:UpdateQuestCachedValues( questID, objectiveIndex, amountCompleted, objectiveFinished )
-	local key = questID..objectiveIndex
+function AJM:UpdateQuestCachedValues( questName, objectiveIndex, amountCompleted, objectiveFinished )
+	local key = questName..objectiveIndex
 	AJM.questWatchCache[key].amountCompleted = amountCompleted
 	AJM.questWatchCache[key].objectiveFinished = objectiveFinished
 end
 
-function AJM:QuestCacheUpdate( questID, objectiveIndex, amountCompleted, objectiveFinished )
-	if AJM:IsQuestObjectiveInCache( questID, objectiveIndex ) == false then
-		AJM:AddQuestObjectiveToCache( questID, objectiveIndex, amountCompleted, objectiveFinished )
+function AJM:QuestCacheUpdate( questName, objectiveIndex, amountCompleted, objectiveFinished )
+	if AJM:IsQuestObjectiveInCache( questName, objectiveIndex ) == false then
+		AJM:AddQuestObjectiveToCache( questName, objectiveIndex, amountCompleted, objectiveFinished )
 		return true
 	end
-	local cachedAmountCompleted, cachedObjectiveFinished = AJM:GetQuestCachedValues( questID, objectiveIndex )
+	local cachedAmountCompleted, cachedObjectiveFinished = AJM:GetQuestCachedValues( questName, objectiveIndex )
 	if cachedAmountCompleted == amountCompleted and cachedObjectiveFinished == objectiveFinished then
 		return false
 	end
-	AJM:UpdateQuestCachedValues( questID, objectiveIndex, amountCompleted, objectiveFinished )
+	AJM:UpdateQuestCachedValues( questName, objectiveIndex, amountCompleted, objectiveFinished )
 	return true
 end
 
@@ -2111,21 +2111,21 @@ function AJM:SetActiveQuestForQuestWatcherCache( questIndex )
 		return
 	end
 	if questIndex ~= nil then
-		local questLogTitleText, level, questTag,  suggestedGroup, isHeader, isCollapsed,  isComplete, isDaily, questID = GetQuestLogTitle( questIndex )
-		AJM.currentQuestForQuestWatcherID = questID
+		local questLogTitleText, level, questTag,  suggestedGroup, isHeader, isCollapsed,  isComplete, isDaily = GetQuestLogTitle( questIndex )
+		AJM.currentQuestForQuestWatcherID = questLogTitleText
 	else
 		AJM.currentQuestForQuestWatcherID = nil
 	end
 end
 
-function AJM:RemoveQuestFromWatcherCache( questID )
+function AJM:RemoveQuestFromWatcherCache( questName )
 	for key, questInfo in pairs( AJM.questWatchCache ) do
-		if questInfo.questID == questID then
-			AJM.questWatchCache[key].questID = nil
+		if questInfo.questName == questName then
+			AJM.questWatchCache[key].questName = nil
 			AJM.questWatchCache[key].amountCompleted = nil
 			AJM.questWatchCache[key].objectiveFinished = nil
 			AJM.questWatchCache[key] = nil
-			AJM:JambaSendCommandToTeam( AJM.COMMAND_QUEST_WATCH_REMOVE_QUEST, questID )
+			AJM:JambaSendCommandToTeam( AJM.COMMAND_QUEST_WATCH_REMOVE_QUEST, questName )
 		end
 	end
 end
@@ -2148,18 +2148,18 @@ function AJM:JambaQuestWatcherUpdate( useCache )
 	if AJM.db.enableQuestWatcher == false then
 		return
 	end
-	--AJM:Print( "Sending quest watch information...")
+	AJM:Print( "Sending quest watch information...")
 	for iterateWatchedQuests = 1, GetNumQuestWatches() do
 		local questIndex = GetQuestIndexForWatch( iterateWatchedQuests )
 		if questIndex ~= nil then
-			local questLogTitleText, level, questTag,  suggestedGroup, isHeader, isCollapsed,  isComplete, isDaily, questID = GetQuestLogTitle( questIndex )
+			local questLogTitleText, level, questTag,  suggestedGroup, isHeader, isCollapsed,  isComplete, isDaily = GetQuestLogTitle( questIndex )
 			numObjectives = GetNumQuestLeaderBoards( questIndex )
 			for iterateObjectives = 1, numObjectives do
 				local objectiveFullText, objectiveType, objectiveFinished = GetQuestLogLeaderBoard( iterateObjectives, questIndex )
 				local amountCompleted, objectiveText = AJM:GetQuestObjectiveCompletion( objectiveFullText )			
-				if (AJM:QuestCacheUpdate( questID, iterateObjectives, amountCompleted, objectiveFinished ) == true) or (useCache == false) then
-					--AJM:Print( "UPDATE:", "cache:", useCache, "QuestID", questID, "ObjectID", iterateObjectives )				
-					AJM:JambaSendCommandToTeam( AJM.COMMAND_QUEST_WATCH_OBJECTIVE_UPDATE, questID, questLogTitleText, iterateObjectives, objectiveText, amountCompleted, objectiveFinished )
+				if (AJM:QuestCacheUpdate( questLogTitleText, iterateObjectives, amountCompleted, objectiveFinished ) == true) or (useCache == false) then
+					--AJM:Print( "UPDATE:", "cache:", useCache, "questName", questLogTitleText, "ObjectID", iterateObjectives )				
+					AJM:JambaSendCommandToTeam( AJM.COMMAND_QUEST_WATCH_OBJECTIVE_UPDATE, questName, questLogTitleText, iterateObjectives, objectiveText, amountCompleted, objectiveFinished )
 				end
 			end
 		end
@@ -2167,32 +2167,32 @@ function AJM:JambaQuestWatcherUpdate( useCache )
 end
 
 -- Gathers messages from team.
-function AJM:DoQuestWatchObjectiveUpdate( characterName, questID, questName, objectiveIndex, objectiveText, amountCompleted, objectiveFinished )
-	AJM:UpdateQuestWatchList( questID, questName, objectiveIndex, objectiveText, characterName, amountCompleted, objectiveFinished )
+function AJM:DoQuestWatchObjectiveUpdate( characterName, questName, objectiveIndex, objectiveText, amountCompleted, objectiveFinished )
+	AJM:UpdateQuestWatchList( questName, objectiveIndex, objectiveText, characterName, amountCompleted, objectiveFinished )
 end
 
-function AJM:UpdateQuestWatchList( questID, questName, objectiveIndex, objectiveText, characterName, amountCompleted, objectiveFinished )
-	local questHeaderPosition = AJM:GetQuestHeaderInWatchList( questID, questName )
-	local objectiveHeaderPosition = AJM:GetObjectiveHeaderInWatchList( questID, questName, objectiveIndex, objectiveText, "", questHeaderPosition )
-	local characterPosition = AJM:GetCharacterInWatchList( questID, objectiveIndex, characterName, amountCompleted, objectiveHeaderPosition, objectiveFinished )	
-	local totalAmountCompleted = AJM:GetTotalCharacterAmountFromWatchList( questID, objectiveIndex )
-	objectiveHeaderPosition = AJM:GetObjectiveHeaderInWatchList( questID, questName, objectiveIndex, objectiveText, totalAmountCompleted, questHeaderPosition )
+function AJM:UpdateQuestWatchList( questName, objectiveIndex, objectiveText, characterName, amountCompleted, objectiveFinished )
+	local questHeaderPosition = AJM:GetQuestHeaderInWatchList( questName )
+	local objectiveHeaderPosition = AJM:GetObjectiveHeaderInWatchList( questName, objectiveIndex, objectiveText, "", questHeaderPosition )
+	local characterPosition = AJM:GetCharacterInWatchList( questName, objectiveIndex, characterName, amountCompleted, objectiveHeaderPosition, objectiveFinished )	
+	local totalAmountCompleted = AJM:GetTotalCharacterAmountFromWatchList( questName, objectiveIndex )
+	objectiveHeaderPosition = AJM:GetObjectiveHeaderInWatchList( questName, objectiveIndex, objectiveText, totalAmountCompleted, questHeaderPosition )
 	AJM:QuestWatcherQuestListScrollRefresh()
 	AJM:SetQuestWatcherVisibility()
 end
 
 -------------------------------------------------------------------------------------------------------------
 
-function AJM:RemoveQuestFromWatchList( questID )
-	AJM:RemoveQuestFromWatcherCache( questID )
-	AJM:JambaSendCommandToTeam( AJM.COMMAND_QUEST_WATCH_REMOVE_QUEST, questID )
+function AJM:RemoveQuestFromWatchList( questName )
+	AJM:RemoveQuestFromWatcherCache( questName )
+	AJM:JambaSendCommandToTeam( AJM.COMMAND_QUEST_WATCH_REMOVE_QUEST, questName )
 end
 
-function AJM:DoRemoveQuestFromWatchList( characterName, questID )
+function AJM:DoRemoveQuestFromWatchList( characterName, questName )
 	-- Remove character lines for this character.
 	for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
 		local questWatchInfo = questWatchInfoContainer.info
-		if questWatchInfo.questID == questID and questWatchInfo.character == characterName then
+		if questWatchInfo.questName == questName and questWatchInfo.character == characterName then
 			AJM:RemoveQuestWatchInfo( questWatchInfo.key )	
 		end
 	end
@@ -2200,14 +2200,14 @@ function AJM:DoRemoveQuestFromWatchList( characterName, questID )
 	local found = false
 	for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
 		local questWatchInfo = questWatchInfoContainer.info
-		if questWatchInfo.questID == questID and questWatchInfo.type == "CHARACTER_AMOUNT" then
+		if questWatchInfo.questName == questName and questWatchInfo.type == "CHARACTER_AMOUNT" then
 			found = true
 		end
 	end
 	if found == false then
 		for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
 			local questWatchInfo = questWatchInfoContainer.info
-			if questWatchInfo.questID == questID then
+			if questWatchInfo.questName == questName then
 				AJM:RemoveQuestWatchInfo( questWatchInfo.key )	
 			end
 		end	
@@ -2220,21 +2220,23 @@ end
 -- QUEST WATCH DISPLAY LIST LOGIC
 -------------------------------------------------------------------------------------------------------------
 
-function AJM:GetTotalCharacterAmountFromWatchList( questID, objectiveIndex )
+function AJM:GetTotalCharacterAmountFromWatchList( questName, objectiveIndex )
 	local amount = 0
 	local total = 0
 	local countCharacters = 0
 	for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
 		local questWatchInfo = questWatchInfoContainer.info
 		local position = questWatchInfoContainer.position
-		if questWatchInfo.questID == questID and questWatchInfo.type == "CHARACTER_AMOUNT" and questWatchInfo.objectiveIndex == objectiveIndex then
+		if questWatchInfo.questName == questName and questWatchInfo.type == "CHARACTER_AMOUNT" and questWatchInfo.objectiveIndex == objectiveIndex then
 			countCharacters = countCharacters + 1
 			local amountCompletedText = questWatchInfo.amount
-			local _, _, arg1, arg2 = string.find(amountCompletedText, "(%d*)/(%d*)")
-			if (arg1 ~= nil) and (arg2 ~= nil) then
-				if strtrim( arg1 ) ~= "" and strtrim( arg2 ) ~= "" then
-					amount = amount + tonumber( arg1 )
-					total = total + tonumber( arg2 )
+			if amountCompletedText ~= nil then
+				local _, _, arg1, arg2 = string.find(amountCompletedText, "(%d*)/(%d*)")
+				if (arg1 ~= nil) and (arg2 ~= nil) then
+					if strtrim( arg1 ) ~= "" and strtrim( arg2 ) ~= "" then
+						amount = amount + tonumber( arg1 )
+						total = total + tonumber( arg2 )
+					end
 				end
 			end
 		end
@@ -2251,37 +2253,40 @@ end
 
 function AJM:RemoveQuestsNotBeingWatched()
 	AJM:UpdateAllQuestsInWatchList()
-	for checkQuestID, value in pairs( AJM.questWatchListOfQuests ) do
+	for checkquestName, value in pairs( AJM.questWatchListOfQuests ) do
 		local found = false
 		for iterateWatchedQuests = 1, GetNumQuestWatches() do
 			local questIndex = GetQuestIndexForWatch( iterateWatchedQuests )
 			if questIndex ~= nil then
-				local questLogTitleText, level, questTag,  suggestedGroup, isHeader, isCollapsed,  isComplete, isDaily, questID = GetQuestLogTitle( questIndex )
-				if checkQuestID == questID then
+				local questLogTitleText, level, questTag,  suggestedGroup, isHeader, isCollapsed,  isComplete, isDaily = GetQuestLogTitle( questIndex )
+				if checkquestName == questLogTitleText then
 					found = true
 				end
 			end
 		end
 		if found == false then
-			AJM:RemoveQuestFromWatchList( checkQuestID )
+			AJM:RemoveQuestFromWatchList( checkquestName )
 		end
 	end
 end
 
 function AJM:UpdateAllQuestsInWatchList()
-	table.wipe( AJM.questWatchListOfQuests )
+for k,v in pairs(AJM.questWatchListOfQuests) do
+  AJM.questWatchListOfQuests[k] = nil
+end
+	--table.wipe( AJM.questWatchListOfQuests )
 	for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
-		AJM.questWatchListOfQuests[questWatchInfoContainer.info.questID] = true
+		AJM.questWatchListOfQuests[questWatchInfoContainer.info.questName] = true
 	end
 end
 
-function AJM:GetCharacterInWatchList( questID, objectiveIndex, characterName, amountCompleted, objectiveHeaderPosition, objectiveFinished )
+function AJM:GetCharacterInWatchList( questName, objectiveIndex, characterName, amountCompleted, objectiveHeaderPosition, objectiveFinished )
 	local characterPosition = -1
 	local characterQuestWatchInfo = nil
 	for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
 		local questWatchInfo = questWatchInfoContainer.info
 		local position = questWatchInfoContainer.position
-		if questWatchInfo.questID == questID and questWatchInfo.type == "CHARACTER_AMOUNT" and questWatchInfo.objectiveIndex == objectiveIndex and questWatchInfo.character == characterName then
+		if questWatchInfo.questName == questName and questWatchInfo.type == "CHARACTER_AMOUNT" and questWatchInfo.objectiveIndex == objectiveIndex and questWatchInfo.character == characterName then
 			questWatchInfo.amount = amountCompleted
 			characterQuestWatchInfo = questWatchInfo
 			characterPosition = position
@@ -2296,40 +2301,40 @@ function AJM:GetCharacterInWatchList( questID, objectiveIndex, characterName, am
 		return -1
 	end
 	if characterPosition == -1 and objectiveFinished == nil then
-		local questWatchInfo = AJM:CreateQuestWatchInfo( questID, "CHARACTER_AMOUNT", objectiveIndex, characterName, "        "..characterName, amountCompleted )
+		local questWatchInfo = AJM:CreateQuestWatchInfo( questName, "CHARACTER_AMOUNT", objectiveIndex, characterName, "        "..characterName, amountCompleted )
 		AJM:InsertQuestWatchInfoToListAfterPosition( questWatchInfo, objectiveHeaderPosition )
 		return objectiveHeaderPosition + 1
 	end
 	return -1
 end
 
-function AJM:GetObjectiveHeaderInWatchList( questID, questName, objectiveIndex, objectiveText, totalAmountCompleted, questHeaderPosition )
+function AJM:GetObjectiveHeaderInWatchList( questName, objectiveIndex, objectiveText, totalAmountCompleted, questHeaderPosition )
 	if strtrim( objectiveText ) == "" then
 		objectiveText = questName
 	end
 	for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
 		local questWatchInfo = questWatchInfoContainer.info
 		local position = questWatchInfoContainer.position
-		if questWatchInfo.questID == questID and questWatchInfo.type == "OBJECTIVE_HEADER" and questWatchInfo.objectiveIndex == objectiveIndex then
+		if questWatchInfo.questName == questName and questWatchInfo.type == "OBJECTIVE_HEADER" and questWatchInfo.objectiveIndex == objectiveIndex then
 			questWatchInfo.information = "    "..objectiveText
 			questWatchInfo.amount = totalAmountCompleted
 			return position
 		end
 	end
-	local questWatchInfo = AJM:CreateQuestWatchInfo( questID, "OBJECTIVE_HEADER", objectiveIndex, "", "    "..objectiveText, totalAmountCompleted )
+	local questWatchInfo = AJM:CreateQuestWatchInfo( questName, "OBJECTIVE_HEADER", objectiveIndex, "", "    "..objectiveText, totalAmountCompleted )
 	AJM:InsertQuestWatchInfoToListAfterPosition( questWatchInfo, questHeaderPosition )
 	return questHeaderPosition + 1
 end
 
-function AJM:GetQuestHeaderInWatchList( questID, questName )
+function AJM:GetQuestHeaderInWatchList( questName )
 	for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
 		local questWatchInfo = questWatchInfoContainer.info
 		local position = questWatchInfoContainer.position
-		if questWatchInfo.questID == questID and questWatchInfo.type == "QUEST_HEADER" then
+		if questWatchInfo.questName == questName and questWatchInfo.type == "QUEST_HEADER" then
 			return position
 		end
 	end
-	local questWatchInfo = AJM:CreateQuestWatchInfo( questID, "QUEST_HEADER", -1, "", questName, L["<Map>"] )
+	local questWatchInfo = AJM:CreateQuestWatchInfo( questName, "QUEST_HEADER", -1, "", questName, L["<Map>"] )
 	local newPositionAtEnd = AJM:GetQuestWatchMaximumOrder() + 1
 	AJM:AddQuestWatchInfoToListAtPosition( questWatchInfo, newPositionAtEnd )
 	return newPositionAtEnd
@@ -2337,10 +2342,10 @@ end
 
 -------------------------------------------------------------------------------------------------------------
 
-function AJM:CreateQuestWatchInfo( questID, type, objectiveIndex, character, information, amount )
+function AJM:CreateQuestWatchInfo( questName, type, objectiveIndex, character, information, amount )
 	local questWatchInfo = {}
-	questWatchInfo.key = questID..type..objectiveIndex..character
-	questWatchInfo.questID = questID
+	questWatchInfo.key = questName..type..objectiveIndex..character
+	questWatchInfo.questName = questName
 	questWatchInfo.type = type
 	questWatchInfo.objectiveIndex = objectiveIndex
 	questWatchInfo.character = character
@@ -2397,7 +2402,7 @@ function AJM:GetQuestWatchInfoAtOrderPosition( position )
 	local information = ""
 	local amount = ""
 	local type = ""
-	local questID = ""
+	local questName = ""
 	for key, questWatchInfoContainer in pairs( AJM.questWatchObjectivesList ) do
 		local questWatchInfo = questWatchInfoContainer.info
 		local questWatchPosition = questWatchInfoContainer.position		
@@ -2405,11 +2410,11 @@ function AJM:GetQuestWatchInfoAtOrderPosition( position )
 			information = questWatchInfo.information
 			amount = questWatchInfo.amount
 			type = questWatchInfo.type
-			questID = questWatchInfo.questID 
+			questName = questWatchInfo.questName 
 			break
 		end
 	end
-	return information, amount, type, questID
+	return information, amount, type, questName
 end
 
 function AJM:CountLinesInQuestWatchList()
@@ -2447,7 +2452,7 @@ function AJM:QuestWatcherQuestListScrollRefresh()
 		local dataRowNumber = iterateDisplayRows + frame.questWatchListOffset
 		if dataRowNumber <= AJM:GetQuestWatchMaximumOrder() then
 			-- Put information and amount into columns.
-			local information, amount, type, questID = AJM:GetQuestWatchInfoAtOrderPosition( dataRowNumber )
+			local information, amount, type, questName = AJM:GetQuestWatchInfoAtOrderPosition( dataRowNumber )
 			frame.questWatchList.rows[iterateDisplayRows].columns[1].textString:SetText( information )
 			frame.questWatchList.rows[iterateDisplayRows].columns[2].textString:SetText( amount )
 			if type == "QUEST_HEADER" then
@@ -2472,7 +2477,7 @@ function AJM:QuestWatcherQuestListRowClick( rowNumber, columnNumber )
 	frame = JambaQuestWatcherFrame
 	if frame.questWatchListOffset + rowNumber <= AJM:GetQuestWatchMaximumOrder() then
 		frame.questWatchHighlightRow = frame.questWatchListOffset + rowNumber
-		local information, amount, type, questID = AJM:GetQuestWatchInfoAtOrderPosition( frame.questWatchHighlightRow )
+		local information, amount, type, questName = AJM:GetQuestWatchInfoAtOrderPosition( frame.questWatchHighlightRow )
 		if type == "QUEST_HEADER" then
 			local questIndex = AJM:GetQuestLogIndexByName( information )
 			if questIndex ~= 0 then
@@ -2480,7 +2485,7 @@ function AJM:QuestWatcherQuestListRowClick( rowNumber, columnNumber )
 					QuestLog_OpenToQuest( questIndex )
 				end
 				if columnNumber == 2 then
-					WorldMap_OpenToQuest( questID )
+					WorldMap_OpenToQuest( questName )
 				end
 			end
 		end
@@ -2564,8 +2569,10 @@ end
 
 function AJM:JambaQuestAbandonQuest()
 	if AJM:IsCurrentlySelectedQuestValid() == true then
+		AJM:Print("Selection is valid, should abandon")
 		AJM:JambaSendCommandToTeam( AJM.COMMAND_ABANDON_QUEST, AJM.currentlySelectedQuest, AJM.selectedTag )
 	else
+	AJM:Print("Selection is invalid, should abandon")
 		AJM:JambaSendMessageToTeam( AJM.db.messageArea, L["You must select a quest from the quest log in order to action it on your other characters."] )
 	end
 end
@@ -2633,8 +2640,8 @@ function AJM.JambaQuestCloseButtonClicked()
 end
 
 function AJM.JambaQuestTagDropDownOnClick()
-	UIDropDownMenu_SetSelectedValue( this.owner, this.value )
-	AJM.selectedTag = UIDropDownMenu_GetSelectedValue( AJM.jambaQuestLogFrameDropDownTag )
+	--UIDropDownMenu_SetSelectedValue( this.owner, this.value )
+	--AJM.selectedTag = UIDropDownMenu_GetSelectedValue( AJM.jambaQuestLogFrameDropDownTag )
 end
 
 function AJM.JambaQuestTagDropDownInitialize()
@@ -2691,12 +2698,12 @@ function AJM:CreateJambaQuestLogFrame()
 	local left = -10
 	local spacing = 1
 	-- Tags
-	local dropDownTag = CreateFrame( "Frame", frameName.."DropDownTag", frame, "UIDropDownMenuTemplate" )
-	dropDownTag:SetPoint( "TOPLEFT", frame, "TOPLEFT", left, -4 )
-	UIDropDownMenu_SetWidth( dropDownTag, 90 )
-	UIDropDownMenu_Initialize( dropDownTag, AJM.JambaQuestTagDropDownInitialize )
-	AJM.jambaQuestLogFrameDropDownTag = dropDownTag
-	left = left + 125 + spacing
+	--local dropDownTag = CreateFrame( "Frame", frameName.."DropDownTag", frame, "UIDropDownMenuTemplate" )
+	--dropDownTag:SetPoint( "TOPLEFT", frame, "TOPLEFT", left, -4 )
+	--UIDropDownMenu_SetWidth( dropDownTag, 90 )
+	--UIDropDownMenu_Initialize( dropDownTag, AJM.JambaQuestTagDropDownInitialize )
+	--AJM.jambaQuestLogFrameDropDownTag = dropDownTag
+	--left = left + 125 + spacing
 	-- Select.
 	local selectButton = CreateFrame( "Button", frameName.."ButtonSelect", frame, "UIPanelButtonTemplate" )
 	selectButton:SetScript( "OnClick", AJM.JambaQuestSelectButtonClicked )
@@ -2753,11 +2760,11 @@ function AJM:CreateJambaQuestLogFrame()
 	closeButton:SetScript( "OnClick", AJM.JambaQuestCloseButtonClicked )
 	closeButton:SetPoint( "TOPRIGHT", frame, "TOPRIGHT", -1, -2 )	
 	AJM.jambaQuestLogFrame = frame
-	table.insert( UISpecialFrames, "JambaQuestLogWindowFrame" )
+	tinsert( UISpecialFrames, "JambaQuestLogWindowFrame" )
 	-- Populate tag dropdown.
-	UIDropDownMenu_SetText( AJM.jambaQuestLogFrameDropDownTag, JambaApi.AllTag() )
-	UIDropDownMenu_SetSelectedName( AJM.jambaQuestLogFrameDropDownTag, JambaApi.AllTag() )
-	AJM.selectedTag = JambaApi.AllTag()
+	--UIDropDownMenu_SetText( AJM.jambaQuestLogFrameDropDownTag, JambaApi.AllTag() )
+	--UIDropDownMenu_SetSelectedName( AJM.jambaQuestLogFrameDropDownTag, JambaApi.AllTag() )
+	--AJM.selectedTag = JambaApi.AllTag()
 	-- Popups.
 	StaticPopupDialogs["JAMBAQUEST_CONFIRM_ABANDON_QUEST"] = {
         text = L['Abandon "%s"?'],
@@ -2783,14 +2790,12 @@ function AJM:CreateJambaQuestLogFrame()
     }        
 end
 
-function AJM:ToggleFrame( frame )
-	if frame == QuestLogFrame then
-		if AJM.db.showJambaQuestLogWithWoWQuestLog == true then
-			if QuestLogFrame:IsVisible() then
-				AJM:ToggleShowQuestCommandWindow( true )		
-			else
-				AJM:ToggleShowQuestCommandWindow( false )
-			end
+function AJM:ToggleFrame()
+	if AJM.db.showJambaQuestLogWithWoWQuestLog == true then
+		if QuestLogFrame:IsVisible() then
+			AJM:ToggleShowQuestCommandWindow( true )		
+		else
+			AJM:ToggleShowQuestCommandWindow( false )
 		end
 	end
 end
@@ -2810,21 +2815,12 @@ function AJM:ToggleShowQuestCommandWindow( show )
 end
 
 function AJM:UpdateQuestLog( questIndex )		
-	if QuestLogFrame:IsVisible() or QuestLogDetailScrollFrame:IsVisible() then
-		if questIndex then
-			QuestLog_SetSelection( questIndex )
-		end
+	if questIndex then
+		QuestLog_SetSelection( questIndex )
 	end
-	if QuestLogFrame:IsVisible() then		
-		QuestLog_Update()
-	end
-	if QuestLogDetailScrollFrame:IsVisible() then		
-		QuestLog_UpdateQuestDetails( false );
-		QuestLog_UpdateMap();
- 	end
-	if WatchFrame:IsVisible() then		
-		WatchFrame_Update()
- 	end
+	QuestLog_Update()
+	QuestLog_UpdateQuestDetails()
+	QuestWatch_Update()
 end
 
 function AJM:GetQuestLogIndexByName( questName )
@@ -2894,7 +2890,7 @@ function AJM:DoQuestTrack( sender, questName, watch, tag )
 end
 
 function AJM:DoAbandonQuest( sender, questName, tag )
-	if JambaApi.DoesCharacterHaveTag( AJM.characterName, tag ) == true then
+	--if JambaApi.DoesCharacterHaveTag( AJM.characterName, tag ) == true then
 		local questIndex = AJM:GetQuestLogIndexByName( questName )
 		if questIndex ~= 0 then
 			SelectQuestLogEntry( questIndex )
@@ -2907,7 +2903,7 @@ function AJM:DoAbandonQuest( sender, questName, tag )
 		else
 			AJM:JambaSendMessageToTeam( AJM.db.warningArea, L["I do not have the quest: A"]( questName ) )
 		end		
-	end
+	--end
 end
 
 function AJM:DoAbandonAllQuests( sender, tag )

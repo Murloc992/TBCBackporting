@@ -765,6 +765,7 @@ function AJM:CommandIAmMaster( info, parameters )
 	else
 		SetMaster( target )
 	end
+	AJM:JambaSendSettings()
 end
 
 function AJM:CommandSetMaster( info, parameters )
@@ -801,7 +802,7 @@ end
 local function SetTeamStatusToOffline()
 	-- Set all characters online status to false.
 	for characterName, characterPosition in pairs( AJM.db.teamList ) do
-		SetCharacterOnlineStatus( characterName, false )
+		SetCharacterOnlineStatus( characterName, true )
 	end
 end
 	

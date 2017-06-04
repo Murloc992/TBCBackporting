@@ -19,7 +19,7 @@ JambaApi = {}
 
 local AJM = LibStub( "AceAddon-3.0" ):NewAddon( 
 	"JambaCore", 
-	"AceConsole-3.0" 
+	"AceConsole-3.0"
 )
 
 -- JambaCore is not a module, but the same naming convention for these values is convenient.
@@ -34,6 +34,7 @@ AJM.teamModuleName = "Jamba-Team"
 -- Load libraries.
 local JambaUtilities = LibStub:GetLibrary( "JambaUtilities-1.0" )
 local AceGUI = LibStub("AceGUI-3.0")
+local AceConfigGUI = LibStub("AceConfigDialog-3.0")
 
 -- Settings - the values to store and their defaults for the settings database.
 AJM.settings = {
@@ -57,80 +58,85 @@ local function GetConfiguration()
 				name = L["Jafula's Awesome Multi-Boxer Assistant"],
 				order = 10,
 			},
+			backportInformation = {
+				type = "description",
+				name = "Backported by Murloc992 of Warmane. Configure using Interface->AddOns->Jamba. I (Murloc992) take no responsibility for the quality of this backport. All intended functionality was fixed to the best ability of the TBC clients' API.",
+				order = 20,
+			},
 			informationLine2 = {
 				type = "description",
 				name = L["Copyright 2008-2010 Michael 'Jafula' Miller"],
-				order = 20,
+				order = 30,
 			},			
 			informationLine3 = {
 				type = "description",
 				name = L["Made in New Zealand"],
-				order = 30,
+				order = 40,
 			},
 			informationLine3AndAHalf = {
 				type = "description",
 				name = "",
-				order = 35,
+				order = 45,
 			},			
 			informationLine4 = {
 				type = "description",
 				name = L["For user manuals and documentation please visit:"],
-				order = 50,
+				order = 60,
 			},
 			informationLine4AndAHalf = {
 				type = "description",
 				name = "",
-				order = 60,
+				order = 70,
 			},
 			informationLine5 = {
 				type = "description",
 				name = L["http://multiboxhaven.com/wow/addons/jamba/"],
-				order = 70,
+				order = 80,
 			},
 			informationLine5AndAHalf = {
 				type = "description",
 				name = "",
-				order = 75,
+				order = 85,
 			},			
 			informationLine6 = {
 				type = "description",
 				name = L["Other useful websites:"],
-				order = 80,
+				order = 90,
 			},
 			informationLine6AndAHalf = {
 				type = "description",
 				name = "",
-				order = 85,
+				order = 95,
 			},			
 			informationLine7 = {
 				type = "description",
 				name = L["http://wow.jafula.com/addons/jamba/"],
-				order = 90,
+				order = 100,
 			},
 			informationLine8 = {
 				type = "description",
 				name = L["http://dual-boxing.com/"],
-				order = 100,
+				order = 110,
 			},
 			informationLine9 = {
 				type = "description",
 				name = L["http://multiboxing.com/"],
-				order = 110,
+				order = 120,
 			},
 			informationLine9AndAHalf = {
 				type = "description",
 				name = "",
-				order = 115,
+				order = 125,
 			},				
 			informationLine10 = {
 				type = "description",
 				name = L["Special thanks to olipcs on dual-boxing.com for writing the FTL Helper module."],
-				order = 120,
+				order = 130,
 			},
 			headerSettings = {
 				type = "header",
 				name = L["Settings"],
-				order = 130,
+				order = 140,
 			},			
 			pushSettingAllModules = {
 				type = "execute",
@@ -138,7 +144,7 @@ local function GetConfiguration()
 				desc = L["Push all module settings to all characters in the team list."],
 				func = "SendSettingsAllModules",
 				width = "full",
-				order = 140,			
+				order = 150,			
 			},					 
 		},
 	}
@@ -410,7 +416,7 @@ end
 -- Handle the chat command.
 function AJM:JambaChatCommand( input )
     if not input or input:trim() == "" then
-        InterfaceOptionsFrame_OpenToCategory( AJM.parentDisplayName )
+        AceConfigGUI:Open( "Jamba-Core" )
     else
         LibStub( "AceConfigCmd-3.0" ):HandleCommand( AJM.chatCommand, AJM.moduleName, input )
     end    

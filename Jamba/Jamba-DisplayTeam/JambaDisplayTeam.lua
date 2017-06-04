@@ -345,7 +345,7 @@ function AJM:RefreshTeamListControlsShow()
 	AJM.totalMembersDisplayed = 0
 	for index, characterName in JambaApi.TeamListOrdered() do
 		-- Is the team member online?
-		if JambaApi.GetCharacterOnlineStatus( characterName ) == true then
+		if JambaApi.GetCharacterOnlineStatus( characterName )  == true then
 			-- Yes, the team member is online, draw their status bars.
 			AJM:UpdateJambaTeamStatusBar( characterName, AJM.totalMembersDisplayed )		
 			AJM.totalMembersDisplayed = AJM.totalMembersDisplayed + 1
@@ -363,17 +363,17 @@ function AJM:SettingsUpdateStatusBarTexture()
 	local statusBarTexture = AJM.SharedMedia:Fetch( "statusbar", AJM.db.statusBarTexture )
 	for characterName, characterStatusBar in pairs( AJM.characterStatusBar ) do	
 		characterStatusBar["followBar"]:SetStatusBarTexture( statusBarTexture )
-		characterStatusBar["followBar"]:GetStatusBarTexture():SetHorizTile( false )
-		characterStatusBar["followBar"]:GetStatusBarTexture():SetVertTile( false )		
+		--characterStatusBar["followBar"]:GetStatusBarTexture():SetHorizTile( false )
+		--characterStatusBar["followBar"]:GetStatusBarTexture():SetVertTile( false )		
 		characterStatusBar["experienceBar"]:SetStatusBarTexture( statusBarTexture )
-		characterStatusBar["experienceBar"]:GetStatusBarTexture():SetHorizTile( false )
-		characterStatusBar["experienceBar"]:GetStatusBarTexture():SetVertTile( false )
+		--characterStatusBar["experienceBar"]:GetStatusBarTexture():SetHorizTile( false )
+		--characterStatusBar["experienceBar"]:GetStatusBarTexture():SetVertTile( false )
 		characterStatusBar["healthBar"]:SetStatusBarTexture( statusBarTexture )
-		characterStatusBar["healthBar"]:GetStatusBarTexture():SetHorizTile( false )
-		characterStatusBar["healthBar"]:GetStatusBarTexture():SetVertTile( false )		
+		--characterStatusBar["healthBar"]:GetStatusBarTexture():SetHorizTile( false )
+		--characterStatusBar["healthBar"]:GetStatusBarTexture():SetVertTile( false )		
 		characterStatusBar["powerBar"]:SetStatusBarTexture( statusBarTexture )
-		characterStatusBar["powerBar"]:GetStatusBarTexture():SetHorizTile( false )
-		characterStatusBar["powerBar"]:GetStatusBarTexture():SetVertTile( false )
+		--characterStatusBar["powerBar"]:GetStatusBarTexture():SetHorizTile( false )
+		--characterStatusBar["powerBar"]:GetStatusBarTexture():SetVertTile( false )
 	end
 end
 
@@ -417,8 +417,8 @@ function AJM:CreateJambaTeamStatusBar( characterName, parentFrame )
 	followBar.backgroundTexture = followBar:CreateTexture( followName.."BackgroundTexture", "ARTWORK" )
 	followBar.backgroundTexture:SetTexture( 0.58, 0.0, 0.55, 0.15 )
 	followBar:SetStatusBarTexture( statusBarTexture )
-	followBar:GetStatusBarTexture():SetHorizTile( false )
-	followBar:GetStatusBarTexture():SetVertTile( false )
+	--followBar:GetStatusBarTexture():SetHorizTile( false )
+	--followBar:GetStatusBarTexture():SetVertTile( false )
 	followBar:SetStatusBarColor( 0.55, 0.15, 0.15, 0.25 )
 	followBar:SetMinMaxValues( 0, 100 )
 	followBar:SetValue( 100 )
@@ -440,8 +440,8 @@ function AJM:CreateJambaTeamStatusBar( characterName, parentFrame )
 	experienceBar.backgroundTexture = experienceBar:CreateTexture( experienceName.."BackgroundTexture", "ARTWORK" )
 	experienceBar.backgroundTexture:SetTexture( 0.0, 0.39, 0.88, 0.15 )
 	experienceBar:SetStatusBarTexture( statusBarTexture )
-	experienceBar:GetStatusBarTexture():SetHorizTile( false )
-	experienceBar:GetStatusBarTexture():SetVertTile( false )
+	--experienceBar:GetStatusBarTexture():SetHorizTile( false )
+	--experienceBar:GetStatusBarTexture():SetVertTile( false )
 	experienceBar:SetMinMaxValues( 0, 100 )
 	experienceBar:SetValue( 100 )
 	experienceBar:SetFrameStrata( "MEDIUM" )
@@ -465,8 +465,8 @@ function AJM:CreateJambaTeamStatusBar( characterName, parentFrame )
 	healthBar.backgroundTexture = healthBar:CreateTexture( healthName.."BackgroundTexture", "ARTWORK" )
 	healthBar.backgroundTexture:SetTexture( 0.58, 0.0, 0.55, 0.15 )
 	healthBar:SetStatusBarTexture( statusBarTexture )
-	healthBar:GetStatusBarTexture():SetHorizTile( false )
-	healthBar:GetStatusBarTexture():SetVertTile( false )
+	--healthBar:GetStatusBarTexture():SetHorizTile( false )
+	--healthBar:GetStatusBarTexture():SetVertTile( false )
 	healthBar:SetMinMaxValues( 0, 100 )
 	healthBar:SetValue( 100 )
 	healthBar:SetFrameStrata( "MEDIUM" )
@@ -489,8 +489,8 @@ function AJM:CreateJambaTeamStatusBar( characterName, parentFrame )
 	powerBar.backgroundTexture = powerBar:CreateTexture( powerName.."BackgroundTexture", "ARTWORK" )
 	powerBar.backgroundTexture:SetTexture( 0.58, 0.0, 0.55, 0.15 )
 	powerBar:SetStatusBarTexture( statusBarTexture )
-	powerBar:GetStatusBarTexture():SetHorizTile( false )
-	powerBar:GetStatusBarTexture():SetVertTile( false )
+	--powerBar:GetStatusBarTexture():SetHorizTile( false )
+	--powerBar:GetStatusBarTexture():SetVertTile( false )
 	powerBar:SetMinMaxValues( 0, 100 )
 	powerBar:SetValue( 100 )
 	powerBar:SetFrameStrata( "MEDIUM" )
@@ -1633,9 +1633,9 @@ function AJM:UNIT_DISPLAYPOWER( event, unit, ... )
 end
 
 function AJM:SendPowerStatusUpdateCommand( unit )
-	if AJM.db.showTeamList == true and AJM.db.showPowerStatus == true then
-		local playerPower = UnitPower( unit )
-		local playerMaxPower = UnitPowerMax( unit )
+	if AJM.db.showTeamList == true and AJM.db.showPowerStatus == true and UnitIsConnected(unit) then
+		local playerPower = UnitMana( unit )
+		local playerMaxPower = UnitManaMax( unit )
 		local characterName = UnitName( unit )
 		AJM:UpdatePowerStatus( characterName, playerPower, playerMaxPower )
 	end
@@ -1686,14 +1686,10 @@ function AJM:UpdatePowerStatus( characterName, playerPower, playerMaxPower )
 end
 
 function AJM:SetStatusBarColourForPower( statusBar, unit )
-	local powerIndex, powerString, altR, altG, altB = UnitPowerType( unit )
-	if powerString ~= nil and powerString ~= "" then
-		local r = PowerBarColor[powerString].r
-		local g = PowerBarColor[powerString].g
-		local b = PowerBarColor[powerString].b
-		statusBar:SetStatusBarColor( r, g, b, 1 )
-		statusBar.backgroundTexture:SetTexture( r, g, b, 0.25 )
-	end
+	local powerIndex = UnitPowerType( unit )
+	statusBar:SetStatusBarColor( 0, 0, 1, 1 )
+	statusBar.backgroundTexture:SetTexture( 0, 0, 1, 0.25 )
+	
 end			
 
 -------------------------------------------------------------------------------------------------------------

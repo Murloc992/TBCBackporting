@@ -126,10 +126,10 @@ local methods = {
 	["SetKey"] = function(self, key)
 		if (key or "") == "" then
 			self.button:SetText(NOT_BOUND)
-			self.button:SetNormalFontObject("GameFontNormal")
+			--self.button:SetNormalFontObject("GameFontNormal")
 		else
 			self.button:SetText(key)
-			self.button:SetNormalFontObject("GameFontHighlight")
+			--self.button:SetNormalFontObject("GameFontHighlight")
 		end
 	end,
 

@@ -21,7 +21,7 @@ local function OnClick(self)                                                    
 	self = self.obj
 	self.editBox:ClearFocus()
 	if not self:Fire("OnEnterPressed", self.editBox:GetText()) then
-		self.button:Disable()
+	--	self.button:Disable()
 	end
 end
 
@@ -101,7 +101,7 @@ local function OnTextSet(self)                                                  
 	self:HighlightText(0, 0)
 	self:SetCursorPosition(self:GetNumLetters())
 	self:SetCursorPosition(0)
-	self.obj.button:Disable()
+	--self.obj.button:Disable()
 end
 
 local function OnVerticalScroll(self, offset)                                    -- ScrollFrame
@@ -138,7 +138,6 @@ local methods = {
 			editBox:SetTextColor(0.5, 0.5, 0.5)
 			self.label:SetTextColor(0.5, 0.5, 0.5)
 			self.scrollFrame:EnableMouse(false)
-			self.button:Disable()
 		else
 			editBox:EnableMouse(true)
 			editBox:SetTextColor(1, 1, 1)
@@ -204,7 +203,6 @@ local function Constructor()
 	button:SetWidth(label:GetStringWidth() + 24)
 	button:SetText(ACCEPT)
 	button:SetScript("OnClick", OnClick)
-	button:Disable()
 	
 	local text = button:GetFontString()
 	text:ClearAllPoints()
@@ -243,7 +241,7 @@ local function Constructor()
 	editBox:SetMultiLine(true)
 	editBox:EnableMouse(true)
 	editBox:SetAutoFocus(false)
-	editBox:SetCountInvisibleLetters(false)
+	--editBox:SetCountInvisibleLetters(false)
 	editBox:SetScript("OnCursorChanged", OnCursorChanged)
 	editBox:SetScript("OnEditFocusLost", OnEditFocusLost)
 	editBox:SetScript("OnEnter", OnEnter)
