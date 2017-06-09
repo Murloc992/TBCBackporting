@@ -1,4 +1,4 @@
-## Interface: 30300
+## Interface: 20400
 ## Title: Jamba-FTL
 ## Notes: Jamba-FTL
 ## Author: olipcs (although most of the code is originaly from Jafula)
